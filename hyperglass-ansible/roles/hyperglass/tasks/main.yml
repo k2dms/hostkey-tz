@@ -1,0 +1,54 @@
+- name: Install base packages
+  dnf:
+    name:
+      - python3
+      - python3-pip
+      - firewalld
+      - git
+    state: present
+
+- name: Enable firewalld
+  systemd:
+    name: firewalld
+    enabled: true
+    state: started
+
+- name: Upgrade pip
+  pip:
+    name: pip
+    executable: pip3
+    state: latest
+
+- name: Install hyperglass
+  pip:
+    name: hyperglass
+    executable: pip3
+
+- name: Create hyperglass config dir
+  file:
+    path: /etc/hyperglass
+    state: directory
+
+- name: Deploy config
+  template:
+    src: hyperglass.yaml.j2
+    dest: /etc/hyperglass/hyperglass.yaml
+
+- name: Deploy systemd service
+  template:
+    src: hyperglass.service.j2
+    dest: /etc/systemd/system/hyperglass.service
+
+- name: Open firewall port
+  firewalld:
+    port: 8001/tcp
+    permanent: true
+    state: enabled
+    immediate: true
+
+- name: Enable hyperglass
+  systemd:
+    name: hyperglass
+    enabled: true
+    daemon_reload: true
+    state: started
