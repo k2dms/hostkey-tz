@@ -1,85 +1,33 @@
-- name: Install dnf plugins
-  dnf:
-    name: dnf-plugins-core
-    state: present
-
-- name: Add Docker CE repository
-  command: >
-    dnf config-manager --add-repo
-    https://download.docker.com/linux/rhel/docker-ce.repo
-  args:
-    creates: /etc/yum.repos.d/docker-ce.repo
-
-- name: Install Docker Engine
-  dnf:
-    name:
-      - docker-ce
-      - docker-ce-cli
-      - containerd.io
-      - docker-buildx-plugin
-      - docker-compose-plugin
-    state: present
-
-- name: Enable and start Docker
-  systemd:
-    name: docker
-    enabled: true
-    state: started
-
-- name: Ensure hyperglass config dir exists
+---
+- name: Create app directory
   file:
-    path: "{{ hyperglass_config_dir }}"
+    path: /opt/hyperglass
     state: directory
-    mode: "0755"
 
 - name: Clone hyperglass repository
   git:
     repo: https://github.com/thatmattlove/hyperglass.git
-    dest: "{{ hyperglass_install_dir }}"
+    dest: /opt/hyperglass
     version: main
-    depth: 1
 
-- name: Copy sample devices.yaml (quickstart)
+- name: Create basic hyperglass config
   copy:
-    src: "{{ hyperglass_install_dir }}/.samples/sample_devices.yaml"
-    dest: "{{ hyperglass_config_dir }}/devices.yaml"
-    remote_src: true
-    force: false
-
-- name: Deploy hyperglass.env
-  copy:
-    dest: "{{ hyperglass_config_dir }}/hyperglass.env"
+    dest: /opt/hyperglass/hyperglass.yaml
     content: |
-      HYPERGLASS_APP_PATH={{ hyperglass_config_dir }}
-      HYPERGLASS_HOST={{ hyperglass_host }}
-      HYPERGLASS_PORT={{ hyperglass_port }}
-      HYPERGLASS_REDIS_HOST={{ hyperglass_redis_host }}
+      debug: true
+      listen_address: 0.0.0.0
+      listen_port: 8001
+      org_name: "Demo Hyperglass"
+      site_title: "Looking Glass Demo"
 
-- name: Deploy docker-compose
-  copy:
-    dest: "{{ hyperglass_install_dir }}/compose.yaml"
-    content: |
-      services:
-        redis:
-          image: redis:alpine
+- name: Open firewall port
+  firewalld:
+    port: 8001/tcp
+    permanent: true
+    state: enabled
+    immediate: true
 
-        hyperglass:
-          image: ghcr.io/thatmattlove/hyperglass:latest
-          depends_on:
-            - redis
-          env_file:
-            - {{ hyperglass_config_dir }}/hyperglass.env
-          ports:
-            - "{{ hyperglass_port }}:{{ hyperglass_port }}"
-          volumes:
-            - {{ hyperglass_config_dir }}:/etc/hyperglass
-
-- name: Pull images
-  command: docker compose pull
-  args:
-    chdir: "{{ hyperglass_install_dir }}"
-
-- name: Start hyperglass
+- name: Start hyperglass via docker compose
   command: docker compose up -d
   args:
-    chdir: "{{ hyperglass_install_dir }}"
+    chdir: /opt/hyperglass
