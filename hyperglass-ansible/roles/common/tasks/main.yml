@@ -11,17 +11,5 @@
       - git
       - curl
       - wget
-      - firewalld
       - python3-pip
     state: present
-
-- name: Enable firewalld
-  service:
-    name: firewalld
-    state: started
-    enabled: true
-
-- name: Set SELinux to permissive (demo-friendly)
-  selinux:
-    policy: targeted
-    state: permissive

@@ -20,13 +20,6 @@
       org_name: "Demo Hyperglass"
       site_title: "Looking Glass Demo"
 
-- name: Open firewall port
-  firewalld:
-    port: 8001/tcp
-    permanent: true
-    state: enabled
-    immediate: true
-
 - name: Start hyperglass via docker compose
   command: docker compose up -d
   args:
