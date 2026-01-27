@@ -1,5 +1,5 @@
 - name: Install hyperglass on Rocky Linux 9
-  hosts: hyperglass
+  hosts: hyperglass_nodes
   become: true
   roles:
     - hyperglass

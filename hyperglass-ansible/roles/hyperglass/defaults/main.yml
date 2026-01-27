@@ -1,0 +1,6 @@
+hyperglass_install_dir: /opt/hyperglass
+hyperglass_config_dir: /etc/hyperglass
+
+hyperglass_port: 8001
+hyperglass_host: 0.0.0.0
+hyperglass_redis_host: redis
