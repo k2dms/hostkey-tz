@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"encoding/xml"
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 )
@@ -15,6 +17,12 @@ type Host struct {
 	Address string `xml:"address"`
 }
 
+const (
+	hostsFile   = "../hosts.xml"
+	targetsFile = "../targets.yml"
+	promReload  = "http://localhost:9090/-/reload"
+)
+
 func main() {
 	for {
 		updateTargets()
@@ -23,7 +31,7 @@ func main() {
 }
 
 func updateTargets() {
-	xmlData, err := os.ReadFile("../hosts.xml")
+	xmlData, err := os.ReadFile(hostsFile)
 	if err != nil {
 		fmt.Println("Error reading XML:", err)
 		return
@@ -35,7 +43,7 @@ func updateTargets() {
 		return
 	}
 
-	file, err := os.Create("../targets.yml")
+	file, err := os.Create(targetsFile)
 	if err != nil {
 		fmt.Println("Error writing targets:", err)
 		return
@@ -50,4 +58,27 @@ func updateTargets() {
 	fmt.Fprintln(file, "    job: virtualization")
 
 	fmt.Println("targets.yml updated")
+
+	reloadPrometheus()
+}
+
+func reloadPrometheus() {
+	req, err := http.NewRequest("POST", promReload, bytes.NewBuffer(nil))
+	if err != nil {
+		fmt.Println("Error creating reload request:", err)
+		return
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		fmt.Println("Error reloading Prometheus:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		fmt.Println("Prometheus reloaded successfully")
+	} else {
+		fmt.Println("Prometheus reload failed, status:", resp.Status)
+	}
 }
