@@ -1,26 +1,32 @@
----
-- name: Create app directory
+- name: Create required directories
   file:
-    path: /opt/hyperglass
+    path: "{{ item }}"
     state: directory
+    mode: "0755"
+  loop:
+    - "{{ hyperglass_dir }}"
+    - "{{ hyperglass_config_dir }}"
 
 - name: Clone hyperglass repository
   git:
-    repo: https://github.com/thatmattlove/hyperglass.git
-    dest: /opt/hyperglass
-    version: main
+    repo: "{{ hyperglass_repo }}"
+    dest: "{{ hyperglass_dir }}"
+    depth: 1
+    force: yes
 
-- name: Create basic hyperglass config
+- name: Override Dockerfile with fixed version
   copy:
-    dest: /opt/hyperglass/hyperglass.yaml
-    content: |
-      debug: true
-      listen_address: 0.0.0.0
-      listen_port: 8001
-      org_name: "Demo Hyperglass"
-      site_title: "Looking Glass Demo"
+    src: Dockerfile
+    dest: "{{ hyperglass_dir }}/Dockerfile"
+    mode: "0644"
 
-- name: Start hyperglass via docker compose
-  command: docker compose up -d
+- name: Copy sample devices config (quickstart)
+  get_url:
+    url: https://raw.githubusercontent.com/thatmattlove/hyperglass/main/.samples/sample_devices.yaml
+    dest: "{{ hyperglass_config_dir }}/devices.yaml"
+    mode: "0644"
+
+- name: Build and start hyperglass
+  command: docker compose up -d --build
   args:
-    chdir: /opt/hyperglass
+    chdir: "{{ hyperglass_dir }}"
